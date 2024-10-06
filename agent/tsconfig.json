@@ -1,5 +1,5 @@
 {
-  "include": ["./playground_agent.ts", "types.d.ts"],
+  "include": ["./playground_agent.ts", "types.d.ts", "test/**/*"],
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "./dist",
@@ -12,6 +12,8 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["jest"],
+    "resolveJsonModule": true
   }
 }
