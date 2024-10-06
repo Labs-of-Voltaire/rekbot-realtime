@@ -9,82 +9,29 @@ import { handleAI2Interaction } from "./logic-ai";
 // Optional: Import dotenv if you're using it to load environment variables
 import "dotenv/config";
 import prospectPersona from "./prospectPersona.json";
+import { getMicrophoneTrackSid, parseSessionConfig } from "./utils";
+
 
 // Create a list to track the conversation history
-const conversationHistory: { role: string; content: string }[] = [];
-let currentState = "Initial Contact";
+export const conversationHistory: { role: string; content: string }[] = [];
+export let currentState = "Initial Contact";
 // Function to track the conversation in the required format
-function trackConversation(role: "user" | "assistant", content: string) {
+export function trackConversation(role: "user" | "assistant", content: string) {
   conversationHistory.push({ role, content });
-  logger.info(`Conversation updated. Role: ${role}, Content: ${content}`);
-}
-
-function safeLogConfig(config: SessionConfig): string {
-  const safeConfig = { ...config, openaiApiKey: "[REDACTED]" };
-  return JSON.stringify(safeConfig);
 }
 
 export default defineAgent({
-  entry: async (ctx: JobContext) => {
-    logger.info("Agent entry function started");
-    await ctx.connect();
-    logger.info("Connected to LiveKit room");
-
-    const participant = await ctx.waitForParticipant();
-    logger.info(`Participant joined: ${participant.identity}`);
-
-    await runMultimodalAgent(ctx, participant);
-  },
-});
-
-type TurnDetectionType = {
-  type: "server_vad";
-  threshold?: number;
-  prefix_padding_ms?: number;
-  silence_duration_ms?: number;
-};
-
-interface SessionConfig {
-  openaiApiKey: string;
-  instructions: string;
-  voice: string;
-  temperature: number;
-  maxOutputTokens?: number;
-  modalities: string[];
-  turnDetection: TurnDetectionType | null;
-}
-
-function parseSessionConfig(data: any): SessionConfig {
-  logger.info("Parsing session configuration from data:", data);
-  const config: SessionConfig = {
-    openaiApiKey: process.env.OPENAI_API_KEY || "",
-    instructions: data.instructions || "",
-    voice: data.voice || "",
-    temperature: parseFloat(data.temperature || "0.8"),
-    maxOutputTokens: data.max_output_tokens === "inf" ? Infinity : parseInt(data.max_output_tokens) || undefined,
-    modalities: modalitiesFromString(data.modalities || "text_and_audio"),
-    turnDetection: data.turn_detection ? JSON.parse(data.turn_detection) : null,
-  };
-  logger.info("Parsed session configuration:", safeLogConfig(config));
-  return config;
-}
-
-function modalitiesFromString(modalities: string): ["text", "audio"] | ["text"] {
-  const modalitiesMap: { [key: string]: ["text", "audio"] | ["text"] } = {
-    text_and_audio: ["text", "audio"],
-    text_only: ["text"],
-  };
-  return modalitiesMap[modalities] || ["text", "audio"];
-}
-
-function getMicrophoneTrackSid(participant: Participant): string | undefined {
-  logger.info("Getting microphone track SID for participant:", participant.identity);
-  const trackSid = Array.from(participant.trackPublications.values()).find(
-    (track: TrackPublication) => track.source === TrackSource.SOURCE_MICROPHONE
-  )?.sid;
-  logger.info("Microphone track SID:", trackSid);
-  return trackSid;
-}
+    entry: async (ctx: JobContext) => {
+      logger.info("Agent entry function started");
+      await ctx.connect();
+      logger.info("Connected to LiveKit room");
+  
+      const participant = await ctx.waitForParticipant();
+      logger.info(`Participant joined: ${participant.identity}`);
+  
+      await runMultimodalAgent(ctx, participant);
+    },
+  });
 
 async function runMultimodalAgent(ctx: JobContext, participant: RemoteParticipant) {
   logger.info("Starting multimodal agent");
@@ -92,7 +39,7 @@ async function runMultimodalAgent(ctx: JobContext, participant: RemoteParticipan
   logger.info("Participant metadata parsed:", metadata);
 
   const config = parseSessionConfig(metadata);
-  logger.info(`Multimodal agent configuration: ${safeLogConfig(config)}`);
+  logger.info(`Multimodal agent configuration: ${config}}`);
 
   const model = new openai.realtime.RealtimeModel({
     apiKey: config.openaiApiKey,
@@ -135,7 +82,7 @@ async function runMultimodalAgent(ctx: JobContext, participant: RemoteParticipan
       ...changedParticipant.attributes,
       ...changedAttributes,
     });
-    logger.info("New configuration after attribute change:", safeLogConfig(newConfig));
+    logger.info("New configuration after attribute change:", config);
 
     session.sessionUpdate({
       instructions: newConfig.instructions,
@@ -251,8 +198,12 @@ async function runMultimodalAgent(ctx: JobContext, participant: RemoteParticipan
       logger.info(`User said: "${transcriptText}"`);
       trackConversation("user", transcriptText);
     }
-    const nextState = await handleAI2Interaction(ctx, session, conversationHistory, currentState, prospectPersona);
-    currentState = nextState;
+    session.sessionUpdate({
+        instructions: "Respond like a pirate!",
+        modalities: ['text', 'audio'], // You can change modalities based on your needs
+      });
+    // const nextState = await handleAI2Interaction(ctx, session, conversationHistory, currentState, prospectPersona);
+    // currentState = nextState;
   });
 
   session.on("input_speech_transcription_failed", (event) => {
