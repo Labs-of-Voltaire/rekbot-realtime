@@ -33,6 +33,7 @@ Provide your output in the following JSON format:
 {
   "nextState": "Next State Name",
   "ai1Instructions": "Instructions for AI1 to generate the next response."
+  "summary": "1 line summary of the instructions."
 }
 
 Do not include any additional text outside of the JSON format.
@@ -43,6 +44,7 @@ Do not include any additional text outside of the JSON format.
 function parseAi2Response(responseContent: string, currentState: string, prospectPersona: any): { nextState: string; ai1Instructions: string } {
   try {
     const parsedOutput = JSON.parse(responseContent);
+    logger.info('*********** Summary', parsedOutput);
     return {
       nextState: parsedOutput.nextState || currentState,
       ai1Instructions: parsedOutput.ai1Instructions || '',
@@ -60,7 +62,7 @@ function parseAi2Response(responseContent: string, currentState: string, prospec
 }
 
 // Main function to determine the next state and generate AI1's prompt
-export async function ai2DetermineNextStateAndPrompt(
+export async function determineNextStateAndPrompt(
   conversationHistory: { role: string; content: string }[],
   currentState: string,
   prospectPersona: any // Receive the persona as input
@@ -74,10 +76,11 @@ export async function ai2DetermineNextStateAndPrompt(
       messages: [{ role: 'user', content: ai2Prompt }],
       max_tokens: 500,
       temperature: 0.7,
-      stop: ['\n\n'],
+    //   stop: ['\n\n'],
     });
 
     const ai2Output = ai2Response.choices[0]?.message?.content?.trim() || '';
+    logger.info('AI2 Output:', ai2Response);
     logger.info('AI2 Output:', ai2Output);
 
     // Parse the OpenAI response and return the next state and instructions
@@ -94,38 +97,3 @@ export async function ai2DetermineNextStateAndPrompt(
     };
   }
 }
-
-export async function handleAI2Interaction(
-    ctx: JobContext,
-    session: openai.realtime.RealtimeSession,
-    conversationHistory: { role: string; content: string }[],
-    currentState: string,
-    prospectPersona: any
-  ) {
-    try {
-      // Call AI2 to determine the next state and generate AI1's prompt
-      const { nextState, ai1Instructions } = await ai2DetermineNextStateAndPrompt(conversationHistory, currentState, prospectPersona);
-  
-      logger.info(`AI2 determined next state: ${nextState}`);
-      logger.info(`AI2 generated AI1 instructions: ${ai1Instructions}`);
-  
-      // Update the session with the new instructions
-      session.sessionUpdate({
-        instructions: ai1Instructions,
-        modalities: ['text', 'audio'], // You can change modalities based on your needs
-      });
-  
-      // Optionally, you can trigger AI1's response creation after the state is updated
-    //   session.response.create();
-  
-      // Log the updated session details
-      logger.info(`Session updated with AI1 instructions: ${ai1Instructions}`);
-  
-      // Return the next state so you can keep track of it if needed
-      return nextState;
-  
-    } catch (error) {
-      logger.error('Error during AI2 interaction:', error);
-      throw error; // You can choose to rethrow or handle the error here
-    }
-  }

@@ -29,8 +29,8 @@ This directory houses the web frontend, built with Next.js.
 ### Agent Setup
 
 1. Navigate to the `/agent` directory
-2. Copy the sample environment file: `cp .env.sample .env.local`
-3. Open `.env.local` in a text editor and enter your LiveKit credentials
+2. Copy the sample environment file: `cp .env.sample .env`
+3. Open `.env` in a text editor and enter your LiveKit credentials
 
 #### Python Version
 
@@ -52,8 +52,8 @@ This directory houses the web frontend, built with Next.js.
 ### Web Frontend Setup
 
 1. Navigate to the `/web` directory
-2. Copy the sample environment file: `cp .env.sample .env.local`
-3. Open `.env.local` in a text editor and enter your LiveKit credentials:
+2. Copy the sample environment file: `cp .env.sample .env`
+3. Open `.env` in a text editor and enter your LiveKit credentials:
 4. Install dependencies: `pnpm install`
 5. Run the development server: `pnpm dev`
 6. Open [http://localhost:3000](http://localhost:3000) in your browser

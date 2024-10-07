@@ -1,4 +1,4 @@
-import { ai2DetermineNextStateAndPrompt } from '../logic-ai'; // Import the refactored function
+import { determineNextStateAndPrompt } from '../logic-ai'; // Import the refactored function
 import dotenv from 'dotenv';
 
 // Load environment variables from .env for API key
@@ -24,7 +24,7 @@ describe('ai2DetermineNextStateAndPrompt (Real API Call)', () => {
     };
 
     // Call the function with the real API
-    const result = await ai2DetermineNextStateAndPrompt(conversationHistory, currentState, prospectPersona);
+    const result = await determineNextStateAndPrompt(conversationHistory, currentState, prospectPersona);
 
     // Log the result to see what the API returns
     console.log('API Result:', result);
@@ -61,7 +61,7 @@ describe('ai2DetermineNextStateAndPrompt (Real API Call)', () => {
 
     try {
       // Call the function and expect it to fail
-      const result = await ai2DetermineNextStateAndPrompt(conversationHistory, currentState, prospectPersona);
+      const result = await determineNextStateAndPrompt(conversationHistory, currentState, prospectPersona);
       expect(result).toBeUndefined(); // If it reaches here, the API didn't fail as expected
     } catch (error) {
       // Handle the error and validate fallback behavior

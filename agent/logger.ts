@@ -18,4 +18,6 @@ const logger = pino({
   timestamp: pino.stdTimeFunctions.isoTime, // Use ISO timestamps
 });
 
-export default logger;
+// pino is not working so im exporting console for now lol. 
+
+export default console;
