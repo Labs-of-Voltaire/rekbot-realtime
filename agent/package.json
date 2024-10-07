@@ -8,7 +8,6 @@
     "clean:build": "pnpm clean && pnpm build",
     "lint": "eslint -f unix \"src/**/*.ts\"",
     "dev": "pnpm exec tsx playground_agent.ts dev",
-    "devo": "pnpm exec tsx old-playagent.ts dev",
     "start": "pnpm exec tsx playground_agent.ts start",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
     "format:write": "prettier --write \"**/*.{ts,tsx,md,json}\""
