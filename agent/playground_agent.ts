@@ -218,10 +218,26 @@ async function runMultimodalAgent(ctx: JobContext, participant: RemoteParticipan
   });
 }
 
-// Run the agent application
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import { cli } from '@livekit/agents'; // Adjust this import based on your setup
+import { WorkerOptions } from '@livekit/agents'; // Adjust this import based on your setup
+
+// Define the absolute path to your agent
+const agentPath = "fileURLToPath(import.meta.url)"
+console.log(agentPath)
+// Convert the Windows path to a file URL
+const agentFileURL = new URL(`file:///${agentPath.replace(/\\/g, '/')}`); // Replace backslashes with forward slashes
+
+console.log('Running agent with the following settings:');
+console.log('Agent file path:', agentFileURL.toString()); // Log the file URL
+console.log('API Key:', process.env.LIVEKIT_API_KEY);
+console.log('API Secret:', process.env.LIVEKIT_API_SECRET);
+console.log('WebSocket URL:', process.env.LIVEKIT_URL);
+
 cli.runApp(
   new WorkerOptions({
-    agent: fileURLToPath(import.meta.url),
+    agent: "file:///C:/Users/joewi/Documents/Python%20Scripts/Gi/rekbot-js/rekbot-realtime/agent/playground_agent.ts", // Use the file URL
     apiKey: process.env.LIVEKIT_API_KEY,
     apiSecret: process.env.LIVEKIT_API_SECRET,
     wsURL: process.env.LIVEKIT_URL,

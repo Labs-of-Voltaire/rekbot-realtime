@@ -1,297 +1,200 @@
-from __future__ import annotations
-
 import asyncio
 import json
 import logging
+import os
 import uuid
 from dataclasses import asdict, dataclass
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 from livekit import rtc
-from livekit.agents import (
-    AutoSubscribe,
-    JobContext,
-    WorkerOptions,
-    WorkerType,
-    cli,
-    llm,
-)
-from livekit.agents.multimodal import MultimodalAgent
+from livekit.agents import JobContext, WorkerOptions, cli, multimodal
+from livekit.agents import llm
 from livekit.plugins import openai
+from dotenv import load_dotenv
 
-logger = logging.getLogger("my-worker")
+from utils import parse_session_config, get_microphone_track_sid  # Import helper functions
+from logic_ai import determine_next_state_and_prompt  # Import AI state management logic
+from prompt import alexPrompt
+
+# Load environment variables from a .env file
+load_dotenv()
+
+# Initialize logger
+logger = logging.getLogger("agent")
 logger.setLevel(logging.INFO)
 
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
 
-@dataclass
-class SessionConfig:
-    openai_api_key: str
-    instructions: str
-    voice: openai.realtime.api_proto.Voice
-    temperature: float 
-    max_response_output_tokens: str | int
-    modalities: list[openai.realtime.api_proto.Modality]
-    turn_detection: openai.realtime.ServerVadOptions
+# Create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
 
-    def __post_init__(self):
-        if self.modalities is None:
-            self.modalities = self._modalities_from_string("text_and_audio")
+# Add console handler to logger
+logger.addHandler(console_handler)
+logger.propagate = True  # Ensure messages are propagated to the root logger
 
-    def to_dict(self):
-        return {k: v for k, v in asdict(self).items() if k != "openai_api_key"}
+# Example log message
+logger.info("Logger initialized")
 
-    @staticmethod
-    def _modalities_from_string(modalities: str) -> list[str]:
-        modalities_map = {
-            "text_and_audio": ["text", "audio"],
-            "text_only": ["text"],
-        }
-        return modalities_map.get(modalities, ["text", "audio"])
+# Create a list to track the conversation history
+conversation_history: List[Dict[str, str]] = []
+current_state = "Initial Contact"
 
+# Function to track the conversation
+def track_conversation(role: str, content: str):
+    conversation_history.append({"role": role, "content": content})
 
-def parse_session_config(data: Dict[str, Any]) -> SessionConfig:
-    turn_detection = None
-    
-    if data.get("turn_detection"):
-        turn_detection_json = json.loads(data.get("turn_detection"))
-        turn_detection = openai.realtime.ServerVadOptions(
-            threshold=turn_detection_json.get("threshold", 0.5),
-            prefix_padding_ms=turn_detection_json.get("prefix_padding_ms", 200),
-            silence_duration_ms=turn_detection_json.get("silence_duration_ms", 300),
-        )
-    else:
-        turn_detection = openai.realtime.DEFAULT_SERVER_VAD_OPTIONS
-    
-    config = SessionConfig(
-        openai_api_key=data.get("openai_api_key", ""),
-        instructions=data.get("instructions", ""),
-        voice=data.get("voice", "alloy"),
-        temperature=float(data.get("temperature", 0.8)),
-        max_response_output_tokens=data.get("max_output_tokens") if data.get("max_output_tokens") == 'inf' else int(data.get("max_output_tokens") or 2048),
-        modalities=SessionConfig._modalities_from_string(
-            data.get("modalities", "text_and_audio")
-        ),
-        turn_detection=turn_detection,
-    )
-    return config
-
-
-async def entrypoint(ctx: JobContext):
-    logger.info(f"connecting to room {ctx.room.name}")
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+async def entry(ctx: JobContext):
+    logger.info("Agent entry function started")
+    await ctx.connect()
+    logger.info("Connected to LiveKit room")
 
     participant = await ctx.wait_for_participant()
+    logger.info(f"Participant joined: {participant.identity}")
+    
+    await run_multimodal_agent(ctx, participant)
 
-    run_multimodal_agent(ctx, participant)
-
-    logger.info("agent started")
-
-
-def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
+async def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
+    logger.info("Starting multimodal agent")
+    
     metadata = json.loads(participant.metadata)
+    logger.info("Participant metadata parsed: %s", metadata)
+
+    # Use the helper function from utils.py to parse session config
     config = parse_session_config(metadata)
-    logger.info(f"starting omni assistant with config: {config.to_dict()}")
+    #config['turnDetection'].pop('threshold', None)
+    logger.info(f"Multimodal agent configuration: {config}")
+    logger.info(f"alexPrompt: {alexPrompt}")
 
     model = openai.realtime.RealtimeModel(
-        api_key=config.openai_api_key,
-        instructions=config.instructions,
-        voice=config.voice,
-        temperature=config.temperature,
-        max_response_output_tokens=config.max_response_output_tokens,
-        modalities=config.modalities,
-        turn_detection=config.turn_detection,
+        api_key=config['openaiApiKey'],  # Adjust key naming based on utils.py
+        instructions=". ".join([alexPrompt, config['instructions']]),
+        voice=config['voice'],
+        temperature=config['temperature'],
+        max_response_output_tokens=config['maxOutputTokens'],
+        modalities=config['modalities'],
+        turn_detection=config['turnDetection'],
     )
-    assistant = MultimodalAgent(model=model)
-    assistant.start(ctx.room)
-    session = model.sessions[0]
+    
+    logger.info("Realtime model initialized")
 
-    if config.modalities == ["text", "audio"]:
-        session.conversation.item.create(
-            llm.ChatMessage(
-                role="user",
-                content="Please begin the interaction with the user in a manner consistent with your instructions.",
-            )
+    agent = multimodal.MultimodalAgent(model=model)
+    logger.info("Multimodal agent instance created")
+    logger.info(f"model prompt: {agent._model.__dict__}")
+
+    session = await agent.start(ctx.room)
+    logger.info("Agent session started")
+
+    session.conversation.item.create(
+        llm.ChatMessage(
+            role="user",
+            content="Please begin the interaction with the user in a manner consistent with your instructions.",
         )
-        session.response.create()
+    )
+    logger.info("Initial conversation item created")
+    session.response.create()
+    logger.info("Initial response created")
 
     @ctx.room.on("participant_attributes_changed")
-    def on_attributes_changed(
-        changed_attributes: dict[str, str], changed_participant: rtc.Participant
-    ):
-        if changed_participant == participant:
+    def on_attributes_changed(changed_attributes: Dict[str, str], changed_participant: rtc.Participant):
+        if changed_participant != participant:
             return
+        logger.info(f"Participant attributes changed for {changed_participant.identity}: %s", changed_attributes)
         
-        new_config = parse_session_config(
-            {**participant.attributes, **changed_attributes}
-        )
-        logger.info(f"participant attributes changed: {new_config.to_dict()}, participant: {changed_participant.identity}")
-        session = model.sessions[0]
-        session.session_update(
-            instructions=new_config.instructions,
-            voice=new_config.voice,
-            temperature=new_config.temperature,
-            max_response_output_tokens=new_config.max_response_output_tokens,
-            turn_detection=new_config.turn_detection,
-            modalities=new_config.modalities,
-        )
+        new_config = parse_session_config({**participant.attributes, **changed_attributes})
+        logger.info("New configuration after attribute change: %s", new_config)
 
-    async def send_transcription(
-        ctx: JobContext,
-        participant: rtc.Participant,
-        track_sid: str,
-        segment_id: str,
-        text: str,
-        is_final: bool = True,
-    ):
-        transcription = rtc.Transcription(
-            participant_identity=participant.identity,
-            track_sid=track_sid,
-            segments=[
-                rtc.TranscriptionSegment(
+        session.session_update(
+            instructions=new_config['instructions'],
+            temperature=new_config['temperature'],
+            max_response_output_tokens=new_config['maxOutputTokens'],
+            modalities=new_config['modalities'],
+            turn_detection=new_config['turnDetection'],
+        )
+        logger.info("Session updated with new configuration")
+
+    async def send_transcription(ctx: JobContext, participant: rtc.Participant, track_sid: str, segment_id: str, text: str, is_final: bool = True):
+        try:
+            transcription = rtc.Transcription(
+                participant_identity=participant.identity,
+                track_sid=track_sid,
+                segments=[rtc.TranscriptionSegment(
                     id=segment_id,
                     text=text,
                     start_time=0,
                     end_time=0,
-                    language="en",
+                    language="",
                     final=is_final,
-                )
-            ],
-        )
-        await ctx.room.local_participant.publish_transcription(transcription)
+                )],
+            )
+            await ctx.room.local_participant.publish_transcription(transcription)
+            logger.info("Transcription published: %s", transcription)
+        except Exception as e:
+            logger.error("Error publishing transcription: %s", e)
 
     @session.on("response_done")
     def on_response_done(response: openai.realtime.RealtimeResponse):
+        response_content = "\n".join([output.content[0].text for output in response.output]) if response.output else ""
+        logger.info("on_response_done callback triggered")
+        if response_content:
+            logger.info(f'GPT said: "{response_content}"')
+            track_conversation("assistant", response_content)
+
         message = None
         if response.status == "incomplete":
-            if response.status_details and response.status_details['reason']:
-                reason = response.status_details['reason']
-                if reason == "max_output_tokens":
-                    message = "🚫 Max output tokens reached"
-                elif reason == "content_filter":
-                    message = "🚫 Content filter applied"
-                else:
-                    message = f"🚫 Response incomplete: {reason}"
-            else:
-                message = "🚫 Response incomplete"
+            logger.error("Response incomplete with reason: %s", response.status_details.get("reason", "Unknown"))
+            message = "🚫 Response incomplete"
         elif response.status == "failed":
-            if response.status_details and response.status_details['error']:
-                error_code = response.status_details['error']['code']
-                if error_code == "server_error":
-                    message = "⚠️ Server error"
-                elif error_code == "rate_limit_exceeded":
-                    message = "⚠️ Rate limit exceeded"
-                else:
-                    message = "⚠️ Response failed"
-            else:
-                message = "⚠️ Response failed"
-        else:
-            return
+            logger.error("Response failed with error: %s", response.status_details.get("error", "Unknown"))
+            message = "⚠️ Response failed"
 
-        local_participant = ctx.room.local_participant
-        track_sid = next(
-            (
-                track.sid
-                for track in local_participant.track_publications.values()
-                if track.source == rtc.TrackSource.SOURCE_MICROPHONE
-            ),
-            None,
-        )
+        if message:
+            logger.info("Sending transcription with message: %s", message)
+            local_participant = ctx.room.local_participant
+            track_sid = get_microphone_track_sid(local_participant)
 
-        asyncio.create_task(
-            send_transcription(
-                ctx, local_participant, track_sid, "status-" + str(uuid.uuid4()), message
-            )
-        )
+            if track_sid:
+                asyncio.create_task(send_transcription(ctx, local_participant, track_sid, f"status-{uuid.uuid4()}", message))
 
-    last_transcript_id = None
-
-    # send three dots when the user starts talking. will be cleared later when a real transcription is sent.
     @session.on("input_speech_started")
     def on_input_speech_started():
-        nonlocal last_transcript_id
-        remote_participant = next(iter(ctx.room.remote_participants.values()), None)
-        if not remote_participant:
-            return
-
-        track_sid = next(
-            (
-                track.sid
-                for track in remote_participant.track_publications.values()
-                if track.source == rtc.TrackSource.SOURCE_MICROPHONE
-            ),
-            None,
-        )
-        if last_transcript_id:
-            asyncio.create_task(
-                send_transcription(
-                    ctx, remote_participant, track_sid, last_transcript_id, ""
-                )
-            )
-
-        new_id = str(uuid.uuid4())
-        last_transcript_id = new_id
-        asyncio.create_task(
-            send_transcription(
-                ctx, remote_participant, track_sid, new_id, "…", is_final=False
-            )
-        )
+        logger.info("Input speech started")
 
     @session.on("input_speech_transcription_completed")
-    def on_input_speech_transcription_completed(
-        event: openai.realtime.InputTranscriptionCompleted,
-    ):
-        nonlocal last_transcript_id
-        if last_transcript_id:
-            remote_participant = next(iter(ctx.room.remote_participants.values()), None)
-            if not remote_participant:
-                return
+    async def on_input_speech_transcription_completed(event: openai.realtime.InputSpeechTranscriptionCompleted):
+        transcript_text = event.transcript or ""
+        if transcript_text:
+            logger.info(f'User said: "{transcript_text}"')
+            track_conversation("user", transcript_text)
 
-            track_sid = next(
-                (
-                    track.sid
-                    for track in remote_participant.track_publications.values()
-                    if track.source == rtc.TrackSource.SOURCE_MICROPHONE
-                ),
-                None,
-            )
-            asyncio.create_task(
-                send_transcription(
-                    ctx, remote_participant, track_sid, last_transcript_id, ""
-                )
-            )
-            last_transcript_id = None
+        # Use logic-ai's state management function
+        logger.info("Fetching next state and instructions")
+        next_state, ai_instructions = await determine_next_state_and_prompt(conversation_history, current_state, metadata)
+        
+        session.session_update(
+            instructions=ai_instructions,
+            modalities=["text", "audio"]
+        )
+        logger.info(f"Session updated with next state: {next_state}")
 
     @session.on("input_speech_transcription_failed")
-    def on_input_speech_transcription_failed(
-        event: openai.realtime.InputTranscriptionFailed,
-    ):
-        nonlocal last_transcript_id
-        if last_transcript_id:
-            remote_participant = next(iter(ctx.room.remote_participants.values()), None)
-            if not remote_participant:
-                return
-
-            track_sid = next(
-                (
-                    track.sid
-                    for track in remote_participant.track_publications.values()
-                    if track.source == rtc.TrackSource.SOURCE_MICROPHONE
-                ),
-                None,
-            )
-
-            error_message = "⚠️ Transcription failed"
-            asyncio.create_task(
-                send_transcription(
-                    ctx,
-                    remote_participant,
-                    track_sid,
-                    last_transcript_id,
-                    error_message,
-                )
-            )
-            last_transcript_id = None
-
+    def on_input_speech_transcription_failed(event):
+        logger.error("Input speech transcription failed: %s", event)
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, worker_type=WorkerType.ROOM))
+    agent_path = os.path.realpath(__file__)
+    print("Running agent with the following settings:")
+    print(f"Agent file path: {agent_path}")
+    print(f"API Key: {os.getenv('LIVEKIT_API_KEY')}")
+    print(f"API Secret: {os.getenv('LIVEKIT_API_SECRET')}")
+    print(f"WebSocket URL: {os.getenv('LIVEKIT_URL')}")
+
+    options = WorkerOptions(
+        entrypoint_fnc=entry,
+        api_key=os.getenv("LIVEKIT_API_KEY"),
+        api_secret=os.getenv("LIVEKIT_API_SECRET"),
+        ws_url=os.getenv("LIVEKIT_URL"),
+    )
+
+    cli.run_app(options)

@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import logger from './logger'; // Import your logger
 import { JobContext } from '@livekit/agents';
 import * as openai from "@livekit/agents-plugin-openai";
+import "dotenv/config";
 
 const textOpenAI = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
