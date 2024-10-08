@@ -1,9 +1,8 @@
-import { Header } from "@/components/header";
-import { RoomComponent } from "@/components/room-component";
-import { Auth } from "@/components/auth";
-import LK from "@/components/lk";
 import Heart from "@/assets/heart.svg";
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { Auth } from "@/components/auth";
+import { Header } from "@/components/header";
+import LK from "@/components/lk";
+import { RoomComponent } from "@/components/room-component";
 
 export default function Dashboard() {
   return (
