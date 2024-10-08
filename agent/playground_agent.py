@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import uuid
 from dataclasses import asdict, dataclass
 from typing import Any, Dict
@@ -93,7 +94,7 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
     logger.info(f"starting omni assistant with config: {config.to_dict()}")
 
     model = openai.realtime.RealtimeModel(
-        api_key=config.openai_api_key,
+        api_key=os.getenv("OPENAI_API_KEY"),
         instructions=config.instructions,
         voice=config.voice,
         temperature=config.temperature,
