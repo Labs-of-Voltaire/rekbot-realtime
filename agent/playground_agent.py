@@ -125,7 +125,7 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
         new_config = parse_session_config(
             {**participant.attributes, **changed_attributes}
         )
-        logger.info(f"participant attributes changed: {new_config.to_dict()}, participant: {changed_participant.identity}")
+        logger.info(f"participant attributes changed.")
         session = model.sessions[0]
         session.session_update(
             instructions=new_config.instructions,
@@ -162,6 +162,15 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
 
     @session.on("response_done")
     def on_response_done(response: openai.realtime.RealtimeResponse):
+        response_content = None
+        if response.output:
+            response_content = "\n".join(
+                "".join(c.text for c in output_item.content)
+                for output_item in response.output
+            )
+
+        if response_content:
+            logger.info(f'GPT said: "{response_content}"')
         message = None
         if response.status == "incomplete":
             if response.status_details and response.status_details['reason']:
@@ -241,6 +250,7 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
     def on_input_speech_transcription_completed(
         event: openai.realtime.InputTranscriptionCompleted,
     ):
+        logger.info(f'User said: "{event.transcript}"')
         nonlocal last_transcript_id
         if last_transcript_id:
             remote_participant = next(iter(ctx.room.remote_participants.values()), None)
