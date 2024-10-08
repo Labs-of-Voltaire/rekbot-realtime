@@ -7,6 +7,11 @@ import os
 import uuid
 from dataclasses import asdict, dataclass
 from typing import Any, Dict
+from analysis_prompt import analysis_prompt
+from prompt import alexPrompt
+from pydantic import BaseModel
+from openai import AsyncOpenAI
+from private.params import credentials
 
 from livekit import rtc
 from livekit.agents import (
@@ -23,6 +28,7 @@ from livekit.plugins import openai
 logger = logging.getLogger("my-worker")
 logger.setLevel(logging.INFO)
 
+new_instructions = None
 
 @dataclass
 class SessionConfig:
@@ -92,7 +98,7 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
     metadata = json.loads(participant.metadata)
     config = parse_session_config(metadata)
     logger.info(f"starting omni assistant with config: {config.to_dict()}")
-
+    conversation_history = []
     model = openai.realtime.RealtimeModel(
         api_key=os.getenv("OPENAI_API_KEY"),
         instructions=config.instructions,
@@ -125,10 +131,18 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
         new_config = parse_session_config(
             {**participant.attributes, **changed_attributes}
         )
+        
+         # Use the new instructions if they were generated
+        if new_instructions:
+            instructions_to_use = new_instructions
+        else:
+            instructions_to_use = config.instructions  # Fallback to original instructions
+
+        
         logger.info(f"participant attributes changed: {new_config.to_dict()}, participant: {changed_participant.identity}")
         session = model.sessions[0]
         session.session_update(
-            instructions=new_config.instructions,
+            instructions=instructions_to_use,
             voice=new_config.voice,
             temperature=new_config.temperature,
             max_response_output_tokens=new_config.max_response_output_tokens,
@@ -163,6 +177,7 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
     @session.on("response_done")
     def on_response_done(response: openai.realtime.RealtimeResponse):
         message = None
+        user_message = None
         if response.status == "incomplete":
             if response.status_details and response.status_details['reason']:
                 reason = response.status_details['reason']
@@ -186,7 +201,7 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
             else:
                 message = "⚠️ Response failed"
         else:
-            return
+            conversation_history.append({'role': 'assistant', 'content': response.output[0].content[0].text})
 
         local_participant = ctx.room.local_participant
         track_sid = next(
@@ -239,7 +254,7 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
 
     @session.on("input_speech_transcription_completed")
     def on_input_speech_transcription_completed(
-        event: openai.realtime.InputTranscriptionCompleted,
+    event: openai.realtime.InputTranscriptionCompleted,
     ):
         nonlocal last_transcript_id
         if last_transcript_id:
@@ -255,6 +270,11 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
                 ),
                 None,
             )
+            
+            conversation_history.append({'role': 'user', 'content': event.transcript})
+            
+            asyncio.create_task(analyze_conversation(conversation_history, session))
+            
             asyncio.create_task(
                 send_transcription(
                     ctx, remote_participant, track_sid, last_transcript_id, ""
@@ -280,6 +300,10 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
                 ),
                 None,
             )
+            
+            transcription_text = event.text
+            
+            conversation_history.append(f"User: {transcription_text}")
 
             error_message = "⚠️ Transcription failed"
             asyncio.create_task(
@@ -292,6 +316,74 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
                 )
             )
             last_transcript_id = None
+
+    #-----------------------------------------------------------------------------------------
+    async def analyze_conversation(conversation_history: list[str], session) -> bool:
+        client = AsyncOpenAI(api_key=credentials['OpenAI-Key'])
+        
+        global new_instructions
+
+        class scoreConversation(BaseModel):
+            rapport: int
+            value_demonstrating: int
+            objection_handling: int
+            conciseness: int
+            straight_line_selling: int
+            overall_performance_score: int
+            
+        combined_analysis_prompt = (
+            ". ".join([analysis_prompt, str(conversation_history)])
+        )
+
+        try:
+            completion = await client.beta.chat.completions.parse(
+                model="gpt-4o-2024-08-06",
+                messages=[
+                    {"role": "system", "content": combined_analysis_prompt},
+                    {"role": "user", "content": "Analyse the conversation"}
+                ],
+                response_format=scoreConversation,
+            )
+
+            message = completion.choices[0].message
+
+            if message.parsed:
+                # Log the score analysis
+                logger.info(
+                    f'rapport: {message.parsed.rapport}\n'
+                    f'Value Demonstrating: {message.parsed.value_demonstrating}\n'
+                    f'Objection Handling: {message.parsed.objection_handling}\n'
+                    f'Straight Line Selling: {message.parsed.straight_line_selling}\n'
+                    f'Conciseness: {message.parsed.conciseness}\n'
+                    f'Overall Score: {message.parsed.overall_performance_score}'
+                )
+                
+                new_instructions = await update_system_prompt(session, message.parsed.overall_performance_score)
+
+        except Exception as e:
+            logger.error(f"Error during conversation analysis: {e}")
+
+
+    async def update_system_prompt(session, performance_score: int):
+        # Define thresholds for behavior change
+        if performance_score >= 7:
+            new_instructions = alexPrompt("Be very polite and encouraging to the user.")
+        elif performance_score >= 5:
+            new_instructions = alexPrompt("Be neutral and professional in your responses.")
+        else:
+            new_instructions = alexPrompt("be very dismissive and rude.")
+
+        # Log the change in instructions
+        logger.info(f"Updating system prompt to: {new_instructions}")
+
+        # Update the session with new instructions
+        session.session_update(
+            instructions=new_instructions,
+            # You can keep the other parameters the same or modify them as needed
+        )
+        
+        return new_instructions
+#-----------------------------------------------------------------------------------------
 
 
 if __name__ == "__main__":

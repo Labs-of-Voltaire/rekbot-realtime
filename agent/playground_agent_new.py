@@ -334,12 +334,15 @@ async def run_multimodal_agent(ctx: JobContext, participant: rtc.RemoteParticipa
             )
 
             if track_sid:
-                await send_transcription(
-                    ctx,
-                    local_participant,
-                    track_sid,
-                    "status-" + str(uuid.uuid4()),
-                    message,
+                # Use asyncio.create_task to run the async send_transcription function
+                asyncio.create_task(
+                    send_transcription(
+                        ctx,
+                        local_participant,
+                        track_sid,
+                        "status-" + str(uuid.uuid4()),
+                        message,
+                    )
                 )
 
     @session.on("input_speech_started")
@@ -347,10 +350,11 @@ async def run_multimodal_agent(ctx: JobContext, participant: rtc.RemoteParticipa
         logger.info("Input speech started")
 
     @session.on("input_speech_transcription_completed")
+
     async def on_input_speech_transcription_completed(
         event: openai.realtime.InputTranscriptionCompleted,
     ):
-        # Log the transcription text
+        global current_state
         transcript_text = event.transcript or ""
 
         if transcript_text:
@@ -358,23 +362,27 @@ async def run_multimodal_agent(ctx: JobContext, participant: rtc.RemoteParticipa
             track_conversation("user", transcript_text)
 
             logger.info("Fetching next state and instructions")
-            result = await determine_next_state_and_prompt(
-                conversation_history, current_state, alexPrompt
-            )
-            next_state = result["nextState"]
-            ai1_instructions = result["ai1Instructions"]
+            
+            await process_next_state_and_update_session(transcript_text)
 
-            session.session_update(
-                instructions=ai1_instructions,
-                modalities=["text", "audio"],
-            )
-            logger.info("Session updated")
-            global current_state
-            current_state = next_state
+    async def process_next_state_and_update_session(transcript_text):
+        result = await determine_next_state_and_prompt(
+            conversation_history, current_state, alexPrompt
+        )
+        next_state = result["nextState"]
+        ai1_instructions = result["ai1Instructions"]
 
-            # Generate AI1's next response
-            session.response.create()
-            logger.info("AI1 generated next response")
+        session.session_update(
+            instructions=ai1_instructions,
+            modalities=["text", "audio"],
+        )
+        logger.info("Session updated")
+        
+        current_state = next_state
+
+        session.response.create()
+        logger.info("AI1 generated next response")
+
 
     @session.on("input_speech_transcription_failed")
     def on_input_speech_transcription_failed(
