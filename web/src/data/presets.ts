@@ -7,7 +7,7 @@ import {
   Zap
 } from "lucide-react";
 import { SessionConfig, defaultSessionConfig } from "./playground-state";
-import { alexaThompson, alexaThompsonHard, emilyRodriguez, jordanaBaker, sophiaNguyen } from "./prompts";
+import { alexaThompson, alexaThompsonHard, emilyRodriguez, jordanaBaker, sophiaNguyen, christineContract } from "./prompts";
 import { VoiceId } from "./voices";
 
 export interface Preset {
@@ -39,28 +39,27 @@ export const defaultPresets: Preset[] = [
     icon: Cpu,
   },
     // Functionality Group
-    {
-      id: "hard-alex-hiring manager",
-      name: "HARD SaaS Hiring Manager",
-      description:
-        "A Very Hard call with the SAAS hiring manager that needs your hiring services!",
-      instructions: alexaThompsonHard
-  ,
-      sessionConfig: { ...defaultSessionConfig },
-      defaultGroup: PresetGroup.FUNCTIONALITY,
-      icon: Bomb,
-    },
-    {
-      id: "chris-contract",
-      name: "Christine Contract Negotiation",
-      description:
-        "You are negotiating a contract with Christine, a potential client.",
-      instructions: alexaThompsonHard
-  ,
-      sessionConfig: { ...defaultSessionConfig },
-      defaultGroup: PresetGroup.FUNCTIONALITY,
-      icon: Pen,
-    },
+  {
+    id: "hard-alex-hiring manager",
+    name: "HARD SaaS Hiring Manager",
+    description:
+      "A Very Hard call with the SAAS hiring manager that needs your hiring services!",
+    instructions: alexaThompsonHard
+,
+    sessionConfig: { ...defaultSessionConfig },
+    defaultGroup: PresetGroup.FUNCTIONALITY,
+    icon: Bomb,
+  },
+  {
+    id: "chris-contract",
+    name: "Christine Contract Negotiation",
+    description:
+      "You are negotiating a contract with Christine, a potential client.",
+    instructions: christineContract,
+    sessionConfig: { ...defaultSessionConfig },
+    defaultGroup: PresetGroup.FUNCTIONALITY,
+    icon: Pen,
+  },
 
   {
     id: "emily-renewable-energy",
