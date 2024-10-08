@@ -1,23 +1,12 @@
+import {
+  Cpu,
+  PhoneOutgoing,
+  Scale,
+  Zap
+} from "lucide-react";
 import { SessionConfig, defaultSessionConfig } from "./playground-state";
 import { alexaThompson, emilyRodriguez, jordanaBaker, sophiaNguyen } from "./prompts";
 import { VoiceId } from "./voices";
-import {
-  Bot,
-  GraduationCap,
-  Annoyed,
-  Music,
-  Cigarette,
-  Anchor,
-  Meh,
-  HeadsetIcon,
-  Scale,
-  Zap,
-  Gamepad,
-  Sparkles,
-  TreePalm,
-  Cpu,
-  PhoneOutgoing,
-} from "lucide-react";
 
 export interface Preset {
   id: string;
