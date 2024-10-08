@@ -1,0 +1,117 @@
+[33mcommit 3caa18e6e5c7745f638aeeb1aca3b879aec95842[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mSystem-updates-Joe[m[33m)[m
+Author: Joe Murray <joewilliammurray@gmail.com>
+Date:   Tue Oct 8 15:57:23 2024 +0100
+
+    built scoring system and function to update instructions based on score
+
+[33mcommit 0af64fe079e18eb60a7b369ced793724f1650e35[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Tue Oct 8 01:29:47 2024 +0100
+
+    added js side
+
+[33mcommit 1f425cd04e3dc68ba977f4344abd95c24794c6be[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Tue Oct 8 01:29:26 2024 +0100
+
+    removed js side
+
+[33mcommit fa9f7a638aa1255c068da9fbe0d9489f2a967377[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Tue Oct 8 01:12:31 2024 +0100
+
+    fix lint
+
+[33mcommit 21d6a87bec7d2e63c7e4c3302b29fa186216fccc[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Tue Oct 8 01:06:39 2024 +0100
+
+    added front end report
+
+[33mcommit 19e3ca1843aef6d752df1b1e79431c0cbd51eeb8[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Mon Oct 7 12:36:34 2024 +0100
+
+    fixed json
+
+[33mcommit 4051a89c5aece766279f929a3d4eb693979ecd7a[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Mon Oct 7 12:33:38 2024 +0100
+
+    working version 1
+
+[33mcommit 6140e1655c5c90f978844c094f206f7ccb1d4be9[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Sun Oct 6 13:00:28 2024 +0100
+
+    respond like a pirate works
+
+[33mcommit f4bd9f341a6fa0573752615e6c2fbd1964d9b7a2[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Sun Oct 6 12:51:13 2024 +0100
+
+    prettier
+
+[33mcommit 0e40dd6ec6d3474b70f0d4ee6850886d6766d21b[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Sun Oct 6 12:35:23 2024 +0100
+
+    added old agent
+
+[33mcommit c4a210a4f9805d003b5d9b4fac1e237b332dd1ff[m
+Author: pezzullig <giulio@voltairelabs.co.uk>
+Date:   Sun Oct 6 00:10:17 2024 +0100
+
+    working version with dotenv
+
+[33mcommit 989a7cb0edb517e4915e21305a041fa7da2aac37[m
+Author: Ben Cherry <ben@livekit.io>
+Date:   Wed Oct 2 07:52:25 2024 -0700
+
+    rl
+
+[33mcommit ec515e5d44106a0ac6e6f82eee9c0ad33fd87d63[m
+Author: Ben Cherry <ben@livekit.io>
+Date:   Tue Oct 1 21:04:18 2024 -0700
+
+    fix link
+
+[33mcommit d87d5cd8fb8fcba6e41b54fcff308b317d10499a[m
+Merge: 3e8a1ad 0425137
+Author: Ben Cherry <ben@livekit.io>
+Date:   Tue Oct 1 09:39:48 2024 -0700
+
+    Merge remote-tracking branch 'origin/main'
+
+[33mcommit 3e8a1adb9eade3c2d8ed5c5e583e223f522a9a95[m
+Author: Ben Cherry <ben@livekit.io>
+Date:   Tue Oct 1 09:39:40 2024 -0700
+
+    fmt
+
+[33mcommit 0425137eb58a457e9e158776d8ca14db432f4dd3[m
+Merge: ce3c56c bc296b2
+Author: Ben Cherry <ben@livekit.io>
+Date:   Tue Oct 1 07:37:01 2024 -0700
+
+    Merge pull request #2 from livekit-examples/fix-typo
+    
+    fix typo
+
+[33mcommit bc296b29112aedc30064357055b8d85a964e502c[m
+Author: Jonas Schell <jonas@livekit.io>
+Date:   Tue Oct 1 14:27:04 2024 +0200
+
+    fix typo
+
+[33mcommit ce3c56c77b8a1dd891b3ba563c09c253e5b67a40[m
+Author: Ben Cherry <ben@livekit.io>
+Date:   Mon Sep 30 23:47:49 2024 -0700
+
+    readme
+
+[33mcommit 563e460f4b8cc1bf00cf89519253a0abc98239f8[m
+Author: Ben Cherry <ben@livekit.io>
+Date:   Mon Sep 30 23:44:03 2024 -0700
+
+    Initial commit
