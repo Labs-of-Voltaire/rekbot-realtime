@@ -166,3 +166,5 @@ node_modules
 .env.local
 
 /rekbot-realtime
+
+/agent-js/*
