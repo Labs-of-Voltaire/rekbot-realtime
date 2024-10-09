@@ -1,13 +1,15 @@
 import {
   Bomb,
+  Brain,
   Cpu,
   Pen,
   PhoneOutgoing,
   Scale,
+  Timer,
   Zap
 } from "lucide-react";
 import { SessionConfig, defaultSessionConfig } from "./playground-state";
-import { alexaThompson, alexaThompsonHard, emilyRodriguez, jordanaBaker, sophiaNguyen, christineContract } from "./prompts";
+import { alexaThompson, alexaThompsonHard, emilyRodriguez, jordanaBaker, sophiaNguyen, christineContract, belindaTheBestRecruiter, emmaTemp } from "./prompts";
 import { VoiceId } from "./voices";
 
 export interface Preset {
@@ -59,6 +61,26 @@ export const defaultPresets: Preset[] = [
     sessionConfig: { ...defaultSessionConfig },
     defaultGroup: PresetGroup.FUNCTIONALITY,
     icon: Pen,
+  },
+  {
+    id: "belinda-recruiter",
+    name: "Belinda The Best Rececruiter",
+    description:
+      "You are a fantastic recruiter with a great track record",
+    instructions: belindaTheBestRecruiter,
+    sessionConfig: { ...defaultSessionConfig },
+    defaultGroup: PresetGroup.FUNCTIONALITY,
+    icon: Brain,
+  },
+  {
+    id: "emma-temp",
+    name: "Emma Temporary Workers",
+    description:
+      "Emma is head of talent aquisitions and staff temp workers",
+    instructions: emmaTemp,
+    sessionConfig: { ...defaultSessionConfig },
+    defaultGroup: PresetGroup.FUNCTIONALITY,
+    icon: Timer,
   },
 
   {
