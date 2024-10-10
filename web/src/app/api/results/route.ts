@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       "objection_handling": "rating out of 10",
       "persuasiveness": "rating out of 10",
       "closing_skills": "rating out of 10",
+      "prospect_said_goodbye": "return true if the prospect has explicitly said the word "Goodbye" and nothing else",
       "phrases_to_improve": [
         {
           "original_phrase": "phrase of the cold caller from the transcript",
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
   `;
 
   console.log("transcript", transcript);
-  console.log("instructions", instructions);
+  // console.log("instructions", instructions);
 
   try {
     // Call OpenAI API with the generated prompt

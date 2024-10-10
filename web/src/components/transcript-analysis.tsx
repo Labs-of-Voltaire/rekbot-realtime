@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAgent } from "@/hooks/use-agent";
 import { usePlaygroundState } from "@/hooks/use-playground-state";
+import { useConnection } from "@/hooks/use-connection";
+import { AlertCircle } from "lucide-react";
 
 const Dial = ({ label, value }: { label: string; value: number }) => {
   const radius = 24; // Radius of the circle
@@ -50,6 +52,9 @@ export function TranscriptAnalysis() {
   const [error, setError] = useState<string | null>(null);
   const [lastWordThreshold, setLastWordThreshold] = useState<number>(0);
   const [softError, setSoftError] = useState<string | null>(null); // Handle soft errors
+  const { disconnect } = useConnection();
+  const [callEnded, setCallEnded] = useState(false); // State to manage call end alert
+
 
   const instructions = pgState.instructions; // Fetch instructions from the playground state
 
@@ -76,6 +81,17 @@ export function TranscriptAnalysis() {
 
       const totalWordCount = countWords(structuredTranscript);
       setWordCount(totalWordCount);
+    }
+    // Check if the agent said "goodbye"
+    const agentSaidGoodbye = displayTranscriptions.some(
+      ({ segment, participant }: any) => participant.isAgent && segment.text.toLowerCase().includes("goodbye")
+    );
+
+    if (agentSaidGoodbye) {
+      setTimeout(() => {
+        setCallEnded(true); // Set call ended state to true
+        disconnect(); // Call the disconnect hook
+      }, 1000); // 5-second delay
     }
   }, [displayTranscriptions]);
 
@@ -109,6 +125,13 @@ export function TranscriptAnalysis() {
         return; // Don't update the assessment if it's incomplete
       }
 
+      // if (data.prospect_said_goodbye) {
+      //   setTimeout(() => {
+      //     setCallEnded(true); // Set call ended state to true
+      //     disconnect(); // Call the disconnect hook if end_the_call is true
+      //   }, 1000); // 5-second delay
+      // }
+
       console.log("Assessment Data: ", data);
       setAssessment(data);
       setSoftError(null); // Reset the soft error if data is good
@@ -122,6 +145,13 @@ export function TranscriptAnalysis() {
   return (
     <div className="p-4 overflow-scroll">
       <h2 className="text-lg font-semibold mb-4">Realtime Report</h2>
+
+      {callEnded && (
+        <div className="alert alert-warning flex items-center mb-4">
+          <AlertCircle className="mr-2" />
+          <span>Yikes, They ended the call... 😬💀</span>
+        </div>
+      )}
 
       {softError && <div className="text-yellow-600">{softError}</div>} {/* Soft error */}
 
