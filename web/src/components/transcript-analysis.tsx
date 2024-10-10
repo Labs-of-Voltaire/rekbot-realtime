@@ -62,7 +62,7 @@ export function TranscriptAnalysis() {
   const buildTranscript = (transcriptions: any[]) => {
     return transcriptions
       .map(({ segment, participant }: any) => {
-        const speaker = participant.isAgent ? "The Cold Caller said" : "The Prospect said";
+        const speaker = !participant.isAgent ? "The Cold Caller said" : "The Prospect said";
         return `${speaker}: "${segment.text.trim()}"\n`;
       })
       .join(" ");
@@ -120,7 +120,7 @@ export function TranscriptAnalysis() {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 overflow-scroll">
       <h2 className="text-lg font-semibold mb-4">Realtime Report</h2>
 
       {softError && <div className="text-yellow-600">{softError}</div>} {/* Soft error */}

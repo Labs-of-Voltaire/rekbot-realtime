@@ -1,22 +1,21 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { Chat } from "@/components/chat";
+import { ConfigurationForm } from "@/components/configuration-form";
+import { Transcript } from "@/components/transcript";
+import { AgentProvider } from "@/hooks/use-agent";
+import { useConnection } from "@/hooks/use-connection";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
   StartAudio,
 } from "@livekit/components-react";
-import { ConfigurationForm } from "@/components/configuration-form";
-import { Chat } from "@/components/chat";
-import { Transcript } from "@/components/transcript";
-import { useConnection } from "@/hooks/use-connection";
-import { AgentProvider } from "@/hooks/use-agent";
 import { ChevronDown, ChevronUp } from "lucide-react"; // Icons for collapse/expand
-import { TranscriptAnalysis } from "./transcript-analysis";
+import { useRef, useState } from "react";
 
 export function RoomComponent() {
   const { shouldConnect, wsUrl, token } = useConnection();
-  const [isCollapsed, setIsCollapsed] = useState(true); // State to toggle configuration visibility
+  const [isCollapsed, setIsCollapsed] = useState(false); // State to toggle configuration visibility
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
   const scrollButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -26,12 +25,12 @@ export function RoomComponent() {
       token={token}
       connect={shouldConnect}
       audio={true}
-      className="flex flex-col flex-grow overflow-hidden border-l border-r border-b rounded-b-md"
+      className="flex flex-col flex-grow overflow-scroll border-l border-r border-b rounded-b-md"
       style={{ "--lk-bg": "white" } as React.CSSProperties}
     >
       <AgentProvider>
         {/* Main grid layout for TranscriptAnalysis and Transcript */}
-        <div className="flex-grow md:grid md:grid-cols-[480px_1fr_360px] lg:grid-cols-[480px_1fr_360px] xl:grid-cols-[480px_1fr_360px] overflow-hidden">
+        <div className="flex-grow md:grid md:grid-cols-[480px_1fr_360px] lg:grid-cols-[480px_1fr_360px] xl:grid-cols-[480px_1fr_360px] overflow-scroll">
           
           {/* Left area for ConfigurationForm and TranscriptAnalysis */}
           <div className="flex flex-col h-full overflow-y-auto relative border-r">
@@ -53,10 +52,10 @@ export function RoomComponent() {
               </div>
             )}
 
-            {/* Transcript Analysis component placed below the ConfigurationForm */}
+            {/* Transcript Analysis component placed below the ConfigurationForm
             <div className="transition-all duration-300 mt-4">
               <TranscriptAnalysis />
-            </div>
+            </div> */}
           </div>
 
           {/* Center Chat area */}

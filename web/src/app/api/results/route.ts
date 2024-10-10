@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
   // Create the prompt for assessing the transcript based on the instructions and straight-line selling method
   const prompt = `
-    You are tasked with assessing a cold call conversation. Below is a cold call transcript followed by specific persona instructions.
+    You are tasked with assessing only the cold caller in a cold call conversation. Below is a cold call transcript followed by specific persona instructions. Do not assess the prospect or their responses—your focus is entirely on the performance of the cold caller.
     Your task is to evaluate the conversation based on the straight-line selling method and provide a JSON report.
 
     **Transcript**: 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       "closing_skills": "rating out of 10",
       "phrases_to_improve": [
         {
-          "original_phrase": "phrase from the transcript",
+          "original_phrase": "phrase of the cold caller from the transcript",
           "suggested_improvement": "better way to say it"
         }
       ],
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify(response), {
       headers: { "Content-Type": "application/json" },
     });
-
+    
   } catch (error) {
     console.error("Error during OpenAI API call", error);
     return new Response(JSON.stringify({ error: "Failed to generate report" }), {

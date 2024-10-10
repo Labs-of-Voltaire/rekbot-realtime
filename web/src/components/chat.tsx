@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Instructions } from "@/components/instructions";
+// import { Instructions } from "@/components/instructions";
 import { SessionControls } from "@/components/session-controls";
 import { ConnectButton } from "./connect-button";
 import { ConnectionState } from "livekit-client";
@@ -15,6 +15,7 @@ import { ChatControls } from "@/components/chat-controls";
 import { useAgent } from "@/hooks/use-agent";
 import { useConnection } from "@/hooks/use-connection";
 import { toast } from "@/hooks/use-toast";
+import { TranscriptAnalysis } from "./transcript-analysis";
 
 export function Chat() {
   const connectionState = useConnectionState();
@@ -110,7 +111,7 @@ export function Chat() {
   );
 
   return (
-    <div className="flex flex-col h-full overflow-hidden p-2 lg:p-4">
+    <div className="flex flex-col h-full overflow-scroll p-2 lg:p-4">
       <ChatControls
         showEditButton={isChatRunning}
         isEditingInstructions={isEditingInstructions}
@@ -123,11 +124,13 @@ export function Chat() {
               {isChatRunning && !isEditingInstructions ? (
                 renderVisualizer()
               ) : (
-                <Instructions />
+                <TranscriptAnalysis />
+                // <Instructions />
               )}
             </div>
             <div className="hidden lg:block w-full">
-              <Instructions />
+              <TranscriptAnalysis />
+
             </div>
           </div>
           <div className="grow h-full flex items-center justify-center">
