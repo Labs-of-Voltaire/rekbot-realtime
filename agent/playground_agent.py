@@ -30,6 +30,13 @@ logger.setLevel(logging.INFO)
 
 new_instructions = None
 
+rapport = 5
+value_demonstrating = 5
+objection_handling = 5
+conciseness = 5
+straight_line_selling = 5
+overall_performance_score = 5
+
 @dataclass
 class SessionConfig:
     openai_api_key: str
@@ -116,7 +123,7 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
         session.conversation.item.create(
             llm.ChatMessage(
                 role="user",
-                content="Please begin the interaction with the user in a manner consistent with your instructions.",
+                content="Begin the interaction with the user in a manner consistent with your instructions.",
             )
         )
         session.response.create()
@@ -138,7 +145,6 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
         else:
             instructions_to_use = config.instructions  # Fallback to original instructions
 
-        
         logger.info(f"participant attributes changed: {new_config.to_dict()}, participant: {changed_participant.identity}")
         session = model.sessions[0]
         session.session_update(
@@ -330,6 +336,8 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
             conciseness: int
             straight_line_selling: int
             overall_performance_score: int
+            quick_feedback: str
+            suggested_response: str
             
         combined_analysis_prompt = (
             ". ".join([analysis_prompt, str(conversation_history)])
@@ -348,38 +356,104 @@ def run_multimodal_agent(ctx: JobContext, participant: rtc.Participant):
             message = completion.choices[0].message
 
             if message.parsed:
-                # Log the score analysis
+                
+                global rapport
+                global value_demonstrating
+                global objection_handling
+                global conciseness
+                global straight_line_selling
+                global overall_performance_score
+            
+                if 'rapport' not in globals():
+                    rapport = 5
+                if 'value_demonstrating' not in globals():
+                    value_demonstrating = 5
+                if 'objection_handling' not in globals():
+                    objection_handling = 5
+                if 'conciseness' not in globals():
+                    conciseness = 5
+                if 'straight_line_selling' not in globals():
+                    straight_line_selling = 5
+                if 'overall_performance_score' not in globals():
+                    overall_performance_score = 5
+
+                # Update Rapport
+                if message.parsed.rapport > rapport:
+                    rapport += 1
+                elif message.parsed.rapport < rapport:
+                    rapport -= 1
+
+                # Update Value Demonstrating
+                if message.parsed.value_demonstrating > value_demonstrating:
+                    value_demonstrating += 1
+                elif message.parsed.value_demonstrating < value_demonstrating:
+                    value_demonstrating -= 1
+
+                # Update Objection Handling
+                if message.parsed.objection_handling > objection_handling:
+                    objection_handling += 1
+                elif message.parsed.objection_handling < objection_handling:
+                    objection_handling -= 1
+
+                # Update Conciseness
+                if message.parsed.conciseness > conciseness:
+                    conciseness += 1
+                elif message.parsed.conciseness < conciseness:
+                    conciseness -= 1
+
+                # Update Straight Line Selling
+                if message.parsed.straight_line_selling > straight_line_selling:
+                    straight_line_selling += 1
+                elif message.parsed.straight_line_selling < straight_line_selling:
+                    straight_line_selling -= 1
+
+                # Calculate Overall Performance Score based on the current metrics
+                overall_performance_score = (rapport + value_demonstrating + objection_handling +
+                                            straight_line_selling + conciseness) / 5
+
+                # Ensure metrics remain within a specified range (e.g., 0 to 5)
+                max_score = 10
+                min_score = 0
+
+                # Clamp the metrics to the defined range
+                rapport = max(min(rapport, max_score), min_score)
+                value_demonstrating = max(min(value_demonstrating, max_score), min_score)
+                objection_handling = max(min(objection_handling, max_score), min_score)
+                conciseness = max(min(conciseness, max_score), min_score)
+                straight_line_selling = max(min(straight_line_selling, max_score), min_score)
+                overall_performance_score = max(min(overall_performance_score, max_score), min_score)
+
                 logger.info(
-                    f'rapport: {message.parsed.rapport}\n'
-                    f'Value Demonstrating: {message.parsed.value_demonstrating}\n'
-                    f'Objection Handling: {message.parsed.objection_handling}\n'
-                    f'Straight Line Selling: {message.parsed.straight_line_selling}\n'
-                    f'Conciseness: {message.parsed.conciseness}\n'
-                    f'Overall Score: {message.parsed.overall_performance_score}'
+                    f'Updated Metrics:\n'
+                    f'Rapport: {rapport}\n'
+                    f'Value Demonstrating: {value_demonstrating}\n'
+                    f'Objection Handling: {objection_handling}\n'
+                    f'Straight Line Selling: {straight_line_selling}\n'
+                    f'Conciseness: {conciseness}\n'
+                    f'Overall Performance Score: {overall_performance_score}\n'
+                    f'Feedback: {message.parsed.quick_feedback}\n'
+                    f'Suggested: {message.parsed.suggested_response}'
                 )
                 
-                new_instructions = await update_system_prompt(session, message.parsed.overall_performance_score)
+                final_score = (rapport + value_demonstrating + objection_handling +
+                             straight_line_selling + conciseness) / 5
+                
+                logger.info(f'final score: {final_score}')
+                
+                new_instructions = await update_system_prompt(session, final_score)
 
         except Exception as e:
             logger.error(f"Error during conversation analysis: {e}")
 
 
     async def update_system_prompt(session, performance_score: int):
-        # Define thresholds for behavior change
-        if performance_score >= 7:
-            new_instructions = alexPrompt("Be very polite and encouraging to the user.")
-        elif performance_score >= 5:
-            new_instructions = alexPrompt("Be neutral and professional in your responses.")
-        else:
-            new_instructions = alexPrompt("be very dismissive and rude.")
+        
+        new_instructions = alexPrompt(performance_score)
 
-        # Log the change in instructions
-        logger.info(f"Updating system prompt to: {new_instructions}")
+        #logger.info(f"Updating system prompt to: {new_instructions}")
 
-        # Update the session with new instructions
         session.session_update(
             instructions=new_instructions,
-            # You can keep the other parameters the same or modify them as needed
         )
         
         return new_instructions
