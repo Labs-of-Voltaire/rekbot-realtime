@@ -1,7 +1,7 @@
 "use client";
 
 import { Chat } from "@/components/chat";
-import { ConfigurationForm } from "@/components/configuration-form";
+// import { ConfigurationForm } from "@/components/configuration-form";
 import { Transcript } from "@/components/transcript";
 import { AgentProvider } from "@/hooks/use-agent";
 import { useConnection } from "@/hooks/use-connection";
@@ -12,6 +12,7 @@ import {
 } from "@livekit/components-react";
 import { ChevronDown, ChevronUp } from "lucide-react"; // Icons for collapse/expand
 import { useRef, useState } from "react";
+import { Instructions } from "./instructions";
 
 export function RoomComponent() {
   const { shouldConnect, wsUrl, token } = useConnection();
@@ -48,7 +49,8 @@ export function RoomComponent() {
             {/* Collapsible ConfigurationForm */}
             {!isCollapsed && (
               <div className="transition-all duration-300">
-                <ConfigurationForm />
+                <Instructions />
+                {/* <ConfigurationForm /> */}
               </div>
             )}
 
