@@ -1,6 +1,7 @@
 "use client";
 
 import { Chat } from "@/components/chat";
+// import { ConfigurationForm } from "@/components/configuration-form";
 import { Transcript } from "@/components/transcript";
 import { AgentProvider } from "@/hooks/use-agent";
 import { useConnection } from "@/hooks/use-connection";
@@ -9,12 +10,13 @@ import {
   RoomAudioRenderer,
   StartAudio,
 } from "@livekit/components-react";
-import { ChevronDown } from "lucide-react"; // Icons for collapse/expand
+import { ChevronDown, ChevronUp } from "lucide-react"; // Icons for collapse/expand
 import { useRef, useState } from "react";
+import { Instructions } from "./instructions";
 
 export function RoomComponent() {
   const { shouldConnect, wsUrl, token } = useConnection();
-  // const [isCollapsed, setIsCollapsed] = useState(true); // State to toggle configuration visibility
+  const [isCollapsed, setIsCollapsed] = useState(false); // State to toggle configuration visibility
   const transcriptContainerRef = useRef<HTMLDivElement>(null);
   const scrollButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -29,11 +31,11 @@ export function RoomComponent() {
     >
       <AgentProvider>
         {/* Main grid layout for TranscriptAnalysis and Transcript */}
-        {/* <div className="flex-grow md:grid md:grid-cols-[480px_1fr_360px] lg:grid-cols-[480px_1fr_360px] xl:grid-cols-[480px_1fr_360px] overflow-scroll"> */}
-        {/* <div className="flex-grow md:grid md:grid-cols-[480px_1fr] lg:grid-cols-[480px_1fr] xl:grid-cols-[480px_1fr] overflow-scroll"> */}
-        <div className="flex-grow grid grid-cols-2 overflow-scroll">
-          {/* Left area for ConfigurationForm and TranscriptAnalysis 
+        <div className="flex-grow md:grid md:grid-cols-[480px_1fr_360px] lg:grid-cols-[480px_1fr_360px] xl:grid-cols-[480px_1fr_360px] overflow-scroll">
+          
+          {/* Left area for ConfigurationForm and TranscriptAnalysis */}
           <div className="flex flex-col h-full overflow-y-auto relative border-r">
+            {/* Collapse button for Configuration */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="flex items-center p-2 bg-gray-100 hover:bg-gray-200 transition-colors w-full"
@@ -44,17 +46,19 @@ export function RoomComponent() {
               {isCollapsed ? <ChevronDown /> : <ChevronUp />}
             </button>
 
+            {/* Collapsible ConfigurationForm */}
             {!isCollapsed && (
               <div className="transition-all duration-300">
-                <ConfigurationForm />
+                <Instructions />
+                {/* <ConfigurationForm /> */}
               </div>
             )}
 
+            {/* Transcript Analysis component placed below the ConfigurationForm
             <div className="transition-all duration-300 mt-4">
               <TranscriptAnalysis />
-            </div> 
+            </div> */}
           </div>
-          */}
 
           {/* Center Chat area */}
           <div className="flex flex-col justify-center w-full max-w-3xl mx-auto">
